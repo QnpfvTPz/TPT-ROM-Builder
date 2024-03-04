@@ -44,8 +44,16 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
             tpt.throw_error(string.format(errorMessages[evResult],ndx))
             return false
         end
+
+        tmpX = locX + x
+        tmpY = locY - y
         
-        local p = sim.partCreate(-3, locX + x, locY - y, 125)
+        if ((tmpX < 4) or (tmpX > 607) or (tmpY < 4) or (tmpY > 379)) then
+            tpt.throw_error("going out of bound!")
+            return false
+        end
+        
+        local p = sim.partCreate(-3, tmpX, tmpY, 125)
         sim.partProperty(p, sim.FIELD_TMP, 6)
         sim.partProperty(p, sim.FIELD_CTYPE, tmp)
         ndx = ndx + 1
@@ -62,11 +70,13 @@ function qRomBuilder.input()
     local locX
     local locY
     locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
-    local sizeX = 64
-    local sizeY = 1
+    local sizeX
+    local sizeY
     local defaultValue = "0x10000000"
+    local ori1 = 0  --Left, Right, Up, Down
+    local ori2 = 0  --Left/Up, Right/Down
 
-    local genWindow  = Window:new  ( -1, -1,320, 144)
+    local genWindow  = Window:new  ( -1, -1,320,160)
     local title      = Label:new   ( 10, 10,300, 17, "~/ Qn ROM Bulider \\~")
     local locLabel   = Label:new   ( 10, 32, 70, 17, "Starting point: ")
     local locXBox    = Textbox:new ( 85, 32, 34, 17, locX, "x coord")
@@ -76,17 +86,77 @@ function qRomBuilder.input()
     local sizeYBox   = Textbox:new (276, 32, 34, 17, sizeY, "height")
     local pathLabel  = Label:new   ( 10, 54, 70, 17, "Data file path: ")
     local pathBox    = Textbox:new ( 85, 54,205, 17, dataPath, "ex) folder/file.txt")
-    local testBtn    = Button:new  (293, 54, 17, 17, "test")
-    local defVLabel  = Label:new   ( 10, 76, 70, 17, "Default value:")
-    local defVBox    = Textbox:new ( 85, 76, 85, 17, defaultValue)
-    local cancelBtn  = Button:new  (180, 76, 60, 17, "Cancel")
-    local confirmBtn = Button:new  (250, 76, 60, 17, "Confirm")
-    local outputLabel= Label:new   ( 10, 98,115, 17, "Message from the script: ")
-    local outputText = Label:new   ( 10,117,320, 17)
+    local testBtn    = Button:new  (293, 54, 17, 17, "뷁")
+    local oriLabel1  = Label:new   ( 10, 76, 70, 17, "Orientation:")
+    local oriBox1    = Button:new  ( 85, 76, 40, 17, "Left")
+    local oriLabel2  = Label:new   (130, 76, 20, 17, "->")
+    local oriBox2    = Button:new  (155, 76, 40, 17, "Up")
+    local defVLabel  = Label:new   ( 10, 98, 70, 17, "Default value:")
+    local defVBox    = Textbox:new ( 85, 98, 85, 17, defaultValue)
+    local cancelBtn  = Button:new  (180, 98, 60, 17, "Cancel")
+    local confirmBtn = Button:new  (250, 98, 60, 17, "Confirm")
+    local outputLabel= Label:new   ( 10,120,310, 17, "Message from the script:             Made by 쀒뚫끢쮅똹뭜쏔")
+    local outputText = Label:new   ( 10,137,310, 17)
 
     local data = {}
     local dataSize = 0
 
+    local ori1Cfg = function()
+        local winX, winY = genWindow:position()
+        local btnX, btnY = oriBox1:position()
+        winX = winX + btnX
+        winY = winY + btnY
+        
+        local oriWindow = Window:new (winX, winY, 40, 64)
+        local btnL      = Button:new (0, 0,40,17,"Left")
+        local btnR      = Button:new (0,16,40,17,"Right")
+        local btnU      = Button:new (0,32,40,17,"Up")
+        local btnD      = Button:new (0,48,40,17,"Down")
+        
+        local oriBox2Cfg = function()
+            local oriBox2text = {}
+            if ori1 <= 1 then
+                oriBox2text = {"Up", "Down"}
+            else
+                oriBox2text = {"Left", "Right"}
+            end
+            oriBox2:text(oriBox2text[ori2+1])
+        end
+
+        local oriTerminate = function()interface.closeWindow(oriWindow)end
+        btnL:action(function()
+            ori1 = 0
+            oriBox1:text("Left")
+            oriBox2Cfg()
+            oriTerminate()
+        end)
+        btnR:action(function()
+            ori1 = 1
+            oriBox1:text("Right")
+            oriBox2Cfg()
+            oriTerminate()
+        end)
+        btnU:action(function()
+            ori1 = 2
+            oriBox1:text("Up")
+            oriBox2Cfg()
+            oriTerminate()
+        end)
+        btnD:action(function()
+            ori1 = 3
+            oriBox1:text("Down")
+            oriBox2Cfg()
+            oriTerminate()
+        end)
+        
+        oriWindow:addComponent(btnL)
+        oriWindow:addComponent(btnR)
+        oriWindow:addComponent(btnU)
+        oriWindow:addComponent(btnD)
+        oriWindow:onTryExit(oriTerminate)
+        interface.showWindow(oriWindow)
+    end
+    oriBox1:action(ori1Cfg)
 
     local outputTest = function()
         if dataSize == 0 then
@@ -94,8 +164,8 @@ function qRomBuilder.input()
         else
             dataPath = pathBox:text()
             local tmp = tonumber(dataPath)
-            if dataPath == "dV" then
-                outputText:text(defaultValue)
+            if dataPath == "easteregg" then
+                outputText:text("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
             elseif tmp == nil then
                 outputText:text("input: nil")
             else
@@ -129,9 +199,7 @@ function qRomBuilder.input()
             outputText:text("file not found")
             return
         end
-
         
-
         for line in dataFile:lines() do
             if (line == nil) then
                 data[#data+1] = defaultValue
@@ -150,8 +218,9 @@ function qRomBuilder.input()
             data[i] = defaultValue
         end
 
-        
+        outputText:text("trying to generate...")
         if qRomBuilder.generate(locX,locY,sizeX,sizeY,data) then
+            outputText:text("done!")
             terminate()
         end
     end
@@ -168,6 +237,10 @@ function qRomBuilder.input()
     genWindow:addComponent(pathLabel)
     genWindow:addComponent(pathBox)
     genWindow:addComponent(testBtn)
+    genWindow:addComponent(oriLabel1)
+    genWindow:addComponent(oriBox1)
+    genWindow:addComponent(oriLabel2)
+    genWindow:addComponent(oriBox2)
     genWindow:addComponent(defVLabel)
     genWindow:addComponent(defVBox)
     genWindow:addComponent(cancelBtn)
@@ -181,11 +254,12 @@ function qRomBuilder.input()
 
 end
 
+
+
 function qRomBuilder._HotkeyHandler(key, keyNum, rep, shift, ctrl, alt)
-    if (key == 106) then
+    if (key == 106) then        -- J stands for Jay
         qRomBuilder.input()
     end
 end
-    
 
 event.register(event.keypress, qRomBuilder._HotkeyHandler)
