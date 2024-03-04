@@ -1,7 +1,14 @@
 
+qRomBuilder = {}
 
+local errorMessages = {
+    "line %d: Data must be a number",
+    "line %d: Data must be an integer",
+    "line %d: Data is too big",
+    "line %d: Data is too small"
+}
 
-
+--tpt.throw_error(string.format(errorMessages[tmp],tmp2))
 
 function qRomBuilder.validateData(data)
     
@@ -25,6 +32,9 @@ end
 
 function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
 
+    -- all data must be in a number
+    -- all data must be seperated by \n
+    
     local ndx = 1
     for y = 0, sizeY-1 do
     for x = 0, sizeX-1 do
@@ -35,17 +45,25 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
     end
     end
 
+    return
+end
+
+
+
+function QnROM()
+    qRomBuilder.input()
 end
 
 
 
 function qRomBuilder.input()
     local dataPath = ""
-    local locX = 0
-    local locY = 0
-    local sizeX = ""
-    local sizeY = ""
-    local defaultValue = ""
+    local locX
+    local locY
+    locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
+    local sizeX = 64
+    local sizeY = 1
+    local defaultValue = 0x10000000
 
     local genWindow  = Window:new  ( -1, -1, 340, 80)
     local locLabel   = Label:new   ( 10, 10,  80, 17, "Starting point: ")
@@ -61,22 +79,27 @@ function qRomBuilder.input()
     local confirmBtn = Button:new  (255, 54,  75, 17, "Confirm")
 
     local terminate = function()interface.closeWindow(genWindow)end
-    cancelBtn:action(terminate)
+	cancelBtn:action(terminate)
 
     local tryGen = function()
+        
         
         if pcall(io.input(dataPath)) == false then
             tpt.throw_error("File not found")
             terminate()
+            return
         end
         io.input(dataPath)
+        
 
         local data = {}
         local dataSize = 0
 
         for line in io.lines() do
             
-            if (line ~= nil) then
+            if (line == nil) then
+                data[#data+1] = defaultValue
+            else
                 data[#data+1] = line
             end
             dataSize = dataSize + 1
@@ -86,15 +109,19 @@ function qRomBuilder.input()
         if (dataSize > (width*height)) then
             tpt.throw_error("Data couldn't fit in the ROM")
             terminate()
+            return
         end
         
         for i = dataSize + 1, width*height do
             data[#data+1] = defaultValue
         end
 
+        terminate()
         qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
-
+        
     end
+    confirmBtn:action(tryGen)
+
 
     
     genWindow:addComponent(locLabel)
@@ -111,7 +138,7 @@ function qRomBuilder.input()
     genWindow:onTryExit(terminate)
     genWindow:onTryOkay(tryGen)
 
-
+    interface.showWindow(genWindow)
 
 end
 
