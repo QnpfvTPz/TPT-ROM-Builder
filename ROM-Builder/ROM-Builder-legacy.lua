@@ -1,8 +1,8 @@
 function test(locX,locY,sizeX,sizeY,dataPath)
 	
-    io.input(dataPath)
+	io.input(dataPath)
 	
-    local data = {}
+	local data = {}
 	local dataSize = 0
 
 	for line in io.lines() do
