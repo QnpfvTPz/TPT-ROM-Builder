@@ -8,7 +8,7 @@ local errorMessages = {
     "line %d: Data is too small"
 }
 
---tpt.throw_error(string.format(errorMessages[tmp],tmp2))
+--
 
 function qRomBuilder.validateData(data)
     
@@ -38,9 +38,16 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
     local ndx = 1
     for y = 0, sizeY-1 do
     for x = 0, sizeX-1 do
+        local tmp = data[ndx]
+        local evResult = qRomBuilder.validateData(tmp)
+        if (evResult ~= 0) then
+            tpt.throw_error(string.format(errorMessages[evResult],ndx))
+            return
+        end
+        
         local p = sim.partCreate(-3, locX + x, locY - y, 125)
         sim.partProperty(p, sim.FIELD_TMP, 6)
-        sim.partProperty(p, sim.FIELD_CTYPE, data[ndx])
+        sim.partProperty(p, sim.FIELD_CTYPE, tmp)
         ndx = ndx + 1
     end
     end
@@ -63,33 +70,46 @@ function qRomBuilder.input()
     locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
     local sizeX = 64
     local sizeY = 1
-    local defaultValue = 0x10000000
+    local defaultValue
 
-    local genWindow  = Window:new  ( -1, -1, 340, 80)
-    local locLabel   = Label:new   ( 10, 10,  80, 17, "Starting point: ")
-    local locXBox    = Textbox:new (100, 10,  30, 17, locX, "x coord")
-    local locYBox    = Textbox:new (140, 10,  30, 17, locY, "y coord")
-    local sizeLabel  = Label:new   (190, 10,  60, 17, "ROM size:")
-    local sizeXBox   = Textbox:new (260, 10,  30, 17, sizeX, "width")
-    local sizeYBox   = Textbox:new (300, 10,  30, 17, sizeY, "height")
-    local pathBox    = Textbox:new ( 10, 32, 320, 17, dataPath, "Data file path (.txt allowed)")
-    local defVLabel  = Label:new   ( 10, 54,  75, 17, "Default value:")
-    local defVBox    = Textbox:new ( 85, 54,  75, 17, defaultValue, "0x10000000")
-    local cancelBtn  = Button:new  (170, 54,  75, 17, "Cancel")
-    local confirmBtn = Button:new  (255, 54,  75, 17, "Confirm")
+    local genWindow  = Window:new  ( -1, -1,320, 144)
+    local title      = Label:new   ( 10, 10,300, 17, "~/ Qn ROM Bulider \\~")
+    local locLabel   = Label:new   ( 10, 32, 70, 17, "Starting point: ")
+    local locXBox    = Textbox:new ( 85, 32, 34, 17, locX, "x coord")
+    local locYBox    = Textbox:new (125, 32, 34, 17, locY, "y coord")
+    local sizeLabel  = Label:new   (176, 32, 50, 17, "ROM size:")
+    local sizeXBox   = Textbox:new (236, 32, 34, 17, sizeX, "width")
+    local sizeYBox   = Textbox:new (276, 32, 34, 17, sizeY, "height")
+    local pathLabel  = Label:new   ( 10, 54, 70, 17, "Data file path: ")
+    local pathBox    = Textbox:new ( 85, 54,205, 17, dataPath, "ex) folder/file.txt")
+    local openDir    = Button:new  (293, 54, 17, 17, "f")
+    local defVLabel  = Label:new   ( 10, 76, 70, 17, "Default value:")
+    local defVBox    = Textbox:new ( 85, 76, 85, 17, defaultValue, "0x10000000", "0x10000000")
+    local cancelBtn  = Button:new  (180, 76, 60, 17, "Cancel")
+    local confirmBtn = Button:new  (250, 76, 60, 17, "Confirm")
+    local outputLabel= Label:new   ( 10, 98,100, 17, "Message from script: ")
+    local outputText = Label:new   ( 10,117,320, 17)
+
+    --outputText:readonly()
+
+    local searchFile = function()
+        --io.popen("explorer.exe")
+        outputText:text("blah blah blah")
+    end
+    openDir:action(searchFile)
 
     local terminate = function()interface.closeWindow(genWindow)end
 	cancelBtn:action(terminate)
 
     local tryGen = function()
         
-        
-        if pcall(io.input(dataPath)) == false then
+        local dataFile
+        if pcall(function()dataFile = io.open(dataPath, "r")end) == false then
             tpt.throw_error("File not found")
             terminate()
             return
         end
-        io.input(dataPath)
+        io.input(dataFile)
         
 
         local data = {}
@@ -123,22 +143,25 @@ function qRomBuilder.input()
     confirmBtn:action(tryGen)
 
 
-    
+    genWindow:addComponent(title)
     genWindow:addComponent(locLabel)
     genWindow:addComponent(locXBox)
     genWindow:addComponent(locYBox)
     genWindow:addComponent(sizeLabel)
     genWindow:addComponent(sizeXBox)
     genWindow:addComponent(sizeYBox)
+    genWindow:addComponent(pathLabel)
     genWindow:addComponent(pathBox)
+    genWindow:addComponent(openDir)
     genWindow:addComponent(defVLabel)
     genWindow:addComponent(defVBox)
     genWindow:addComponent(cancelBtn)
     genWindow:addComponent(confirmBtn)
+    genWindow:addComponent(outputLabel)
+    genWindow:addComponent(outputText)
     genWindow:onTryExit(terminate)
     genWindow:onTryOkay(tryGen)
 
     interface.showWindow(genWindow)
 
 end
-
