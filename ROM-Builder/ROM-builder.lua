@@ -8,7 +8,7 @@ local errorMessages = {
     "line %d: Data is too small"
 }
 
---
+
 
 function qRomBuilder.validateData(data)
     
@@ -42,7 +42,7 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
         local evResult = qRomBuilder.validateData(tmp)
         if (evResult ~= 0) then
             tpt.throw_error(string.format(errorMessages[evResult],ndx))
-            return
+            return false
         end
         
         local p = sim.partCreate(-3, locX + x, locY - y, 125)
@@ -52,13 +52,7 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
     end
     end
 
-    return
-end
-
-
-
-function QnROM()
-    qRomBuilder.input()
+    return true
 end
 
 
@@ -70,7 +64,7 @@ function qRomBuilder.input()
     locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
     local sizeX = 64
     local sizeY = 1
-    local defaultValue
+    local defaultValue = "0x10000000"
 
     local genWindow  = Window:new  ( -1, -1,320, 144)
     local title      = Label:new   ( 10, 10,300, 17, "~/ Qn ROM Bulider \\~")
@@ -82,63 +76,84 @@ function qRomBuilder.input()
     local sizeYBox   = Textbox:new (276, 32, 34, 17, sizeY, "height")
     local pathLabel  = Label:new   ( 10, 54, 70, 17, "Data file path: ")
     local pathBox    = Textbox:new ( 85, 54,205, 17, dataPath, "ex) folder/file.txt")
-    local openDir    = Button:new  (293, 54, 17, 17, "f")
+    local testBtn    = Button:new  (293, 54, 17, 17, "test")
     local defVLabel  = Label:new   ( 10, 76, 70, 17, "Default value:")
-    local defVBox    = Textbox:new ( 85, 76, 85, 17, defaultValue, "0x10000000", "0x10000000")
+    local defVBox    = Textbox:new ( 85, 76, 85, 17, defaultValue)
     local cancelBtn  = Button:new  (180, 76, 60, 17, "Cancel")
     local confirmBtn = Button:new  (250, 76, 60, 17, "Confirm")
-    local outputLabel= Label:new   ( 10, 98,100, 17, "Message from script: ")
+    local outputLabel= Label:new   ( 10, 98,115, 17, "Message from the script: ")
     local outputText = Label:new   ( 10,117,320, 17)
 
-    --outputText:readonly()
+    local data = {}
+    local dataSize = 0
 
-    local searchFile = function()
-        --io.popen("explorer.exe")
-        outputText:text("blah blah blah")
+
+    local outputTest = function()
+        if dataSize == 0 then
+            outputText:text("blah blah blah")
+        else
+            dataPath = pathBox:text()
+            local tmp = tonumber(dataPath)
+            if dataPath == "dV" then
+                outputText:text(defaultValue)
+            elseif tmp == nil then
+                outputText:text("input: nil")
+            else
+                outputText:text(data[tmp])
+            end
+            
+        end
     end
-    openDir:action(searchFile)
+    testBtn:action(outputTest)
 
     local terminate = function()interface.closeWindow(genWindow)end
 	cancelBtn:action(terminate)
 
     local tryGen = function()
         
+        locX = locXBox:text()
+        locY = locYBox:text()
+        sizeX = sizeXBox:text()
+        sizeY = sizeYBox:text()
+        dataPath = pathBox:text()
+        defaultValue = defVBox:text()
+
+        outputText:text("trying to open...")
         local dataFile
-        if pcall(function()dataFile = io.open(dataPath, "r")end) == false then
-            tpt.throw_error("File not found")
-            terminate()
+        data = {}
+        dataSize = 0
+
+        dataFile = io.open(dataPath)
+
+        if dataFile == nil then
+            outputText:text("file not found")
             return
         end
-        io.input(dataFile)
+
         
 
-        local data = {}
-        local dataSize = 0
-
-        for line in io.lines() do
-            
+        for line in dataFile:lines() do
             if (line == nil) then
                 data[#data+1] = defaultValue
             else
                 data[#data+1] = line
             end
             dataSize = dataSize + 1
-
         end
 
-        if (dataSize > (width*height)) then
-            tpt.throw_error("Data couldn't fit in the ROM")
-            terminate()
+        if (dataSize > (sizeX*sizeY)) then
+            outputText:text("Data couldn't fit in the ROM")
             return
         end
         
-        for i = dataSize + 1, width*height do
-            data[#data+1] = defaultValue
+        for i = dataSize + 1, sizeX*sizeY do
+            data[i] = defaultValue
         end
 
-        terminate()
-        qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
         
+        if qRomBuilder.generate(locX,locY,sizeX,sizeY,data) then
+            terminate()
+        end
     end
     confirmBtn:action(tryGen)
 
@@ -152,7 +167,7 @@ function qRomBuilder.input()
     genWindow:addComponent(sizeYBox)
     genWindow:addComponent(pathLabel)
     genWindow:addComponent(pathBox)
-    genWindow:addComponent(openDir)
+    genWindow:addComponent(testBtn)
     genWindow:addComponent(defVLabel)
     genWindow:addComponent(defVBox)
     genWindow:addComponent(cancelBtn)
@@ -165,3 +180,12 @@ function qRomBuilder.input()
     interface.showWindow(genWindow)
 
 end
+
+function qRomBuilder._HotkeyHandler(key, keyNum, rep, shift, ctrl, alt)
+    if (key == 106) then
+        qRomBuilder.input()
+    end
+end
+    
+
+event.register(event.keypress, qRomBuilder._HotkeyHandler)
