@@ -168,6 +168,61 @@ function qRomBuilder.input()
     local outputLabel= Label:new   ( 10,120,310, 17, "Message from the script:             Made by 쀒뚫끢쮅똹뭜쏔")
     local outputText = Label:new   ( 10,137,310, 17)
 
+    local titleRed = 255
+    local titleGreen = 0
+    local titleBlue = 0
+    local phase = 0
+    genWindow:onTick(function()
+        if phase == 0 then
+            titleGreen = titleGreen + 17
+            if titleGreen == 255 then
+                phase = 1
+            end
+        elseif phase == 1 then
+            titleRed = titleRed - 17
+            if titleRed == 0 then
+                phase = 2
+            end
+        elseif phase == 2 then
+            titleBlue = titleBlue + 17
+            if titleBlue == 255 then
+                phase = 3
+            end
+        elseif phase == 3 then
+            titleGreen = titleGreen - 17
+            if titleGreen == 0 then
+                phase = 4
+            end
+        elseif phase == 4 then
+            titleRed = titleRed + 17
+            if titleRed == 255 then
+                phase = 5
+            end
+        elseif phase == 5 then
+            titleBlue = titleBlue - 17
+            if titleBlue == 0 then
+                phase = 0
+            end
+        end
+        local toChar = function(x)
+            if x < 16 then
+                return "0" .. string.format("%x", x)
+            else
+                return string.format("%x", x)
+            end
+        end
+        local coloredText = "\\x0F\\x"..toChar(titleRed).."\\x"..toChar(titleGreen).."\\x"..toChar(titleBlue).."~/ Qn ROM Bulidre \\~"
+        coloredText = coloredText:gsub("\\x(%x%x)",
+            function (x)
+                return string.char(tonumber(x,16))
+            end)
+        title:text(coloredText)
+    end)
+
+
+
+
+
     local data = {}
     local dataSize = 0
 
@@ -334,7 +389,7 @@ function qRomBuilder.input()
             outputText:text("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
             io.popen('start /max https://www.youtube.com/watch?v=dQw4w9WgXcQ')
         elseif dataSize == 0 then
-            outputText:text("blah blah blah")
+            outputText:text("Hello world!")
         else
             
             local tmp = tonumber(dP)
