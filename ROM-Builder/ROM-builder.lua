@@ -30,23 +30,76 @@ end
 
 
 
-function qRomBuilder.generate(locX,locY,sizeX,sizeY,data)
+function qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data)
 
     -- all data must be in a number
     -- all data must be seperated by \n
     
+    --ori1: Left, Right, Up, Down
+    --ori2: Left/Up, Right/Down
+
+    tpt.log("Qn-ROM-Builder: generating...")
+
+    local size = {sizeY, sizeX}
     local ndx = 1
-    for y = 0, sizeY-1 do
-    for x = 0, sizeX-1 do
-        local tmp = data[ndx]
-        local evResult = qRomBuilder.validateData(tmp)
+    local vh = 0
+    local yx, xy
+    local tmp
+    local evResult
+
+    if ori1 <= 1 then
+        vh = 1
+    end
+
+    for y = 0, size[2-vh]-1 do
+    for x = 0, size[1+vh]-1 do
+
+        tmp = data[ndx]
+        evResult = qRomBuilder.validateData(tmp)
         if (evResult ~= 0) then
             tpt.throw_error(string.format(errorMessages[evResult],ndx))
             return false
         end
+        
+        if vh == 1 then
+            yx = x
+            xy = y
+        else
+            yx = y
+            xy = x
+        end
 
-        tmpX = locX + x
-        tmpY = locY - y
+        if ori1 == 0 then
+            tmpX = locX - yx
+        elseif ori1 == 1 then
+            tmpX = locX + yx
+        elseif ori1 == 2 then
+            tmpY = locY - xy
+        elseif ori1 == 3 then
+            tmpY = locY + xy
+        else
+            tpt.throw_error("invalid orientation 1")
+            return false
+        end
+        if vh == 1 then
+            if ori2 == 0 then
+                tmpY = locY - xy
+            elseif ori2 == 1 then
+                tmpY = locY + xy
+            else
+                tpt.throw_error("invalid orientation 2")
+                return false
+            end
+        else
+            if ori2 == 0 then
+                tmpX = locX - yx
+            elseif ori2 == 1 then
+                tmpX = locX + yx
+            else
+                tpt.throw_error("invalid orientation 2")
+                return false
+            end
+        end
         
         if ((tmpX < 4) or (tmpX > 607) or (tmpY < 4) or (tmpY > 379)) then
             tpt.throw_error("going out of bound!")
@@ -66,14 +119,18 @@ end
 
 
 function qRomBuilder.input()
-    local dataPath = ""
+    local dataPath = "t.txt"
     local locX
     local locY
-    locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
+    --locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
+    locX = 10
+    locY = 10
     local sizeX
     local sizeY
+    sizeX = 4
+    sizeY = 4
     local defaultValue = "0x10000000"
-    local ori1 = 0  --Left, Right, Up, Down
+    local ori1 = 1  --Left, Right, Up, Down
     local ori2 = 0  --Left/Up, Right/Down
 
     local genWindow  = Window:new  ( -1, -1,320,160)
@@ -88,7 +145,7 @@ function qRomBuilder.input()
     local pathBox    = Textbox:new ( 85, 54,205, 17, dataPath, "ex) folder/file.txt")
     local testBtn    = Button:new  (293, 54, 17, 17, "뷁")
     local oriLabel1  = Label:new   ( 10, 76, 70, 17, "Orientation:")
-    local oriBox1    = Button:new  ( 85, 76, 40, 17, "Left")
+    local oriBox1    = Button:new  ( 85, 76, 40, 17, "Right")
     local oriLabel2  = Label:new   (130, 76, 20, 17, "->")
     local oriBox2    = Button:new  (155, 76, 40, 17, "Up")
     local defVLabel  = Label:new   ( 10, 98, 70, 17, "Default value:")
@@ -158,6 +215,42 @@ function qRomBuilder.input()
     end
     oriBox1:action(ori1Cfg)
 
+    local ori2Cfg = function()
+        local winX, winY = genWindow:position()
+        local btnX, btnY = oriBox2:position()
+        winX = winX + btnX
+        winY = winY + btnY
+        
+        local oriBox2text = {}
+        if ori1 <= 1 then
+            oriBox2text = {"Up", "Down"}
+        else
+            oriBox2text = {"Left", "Right"}
+        
+        end
+        local oriWindow = Window:new (winX, winY, 40, 32)
+        local btnLU     = Button:new (0, 0,40,17,oriBox2text[1])
+        local btnRD     = Button:new (0,16,40,17,oriBox2text[2])
+        
+        local oriTerminate = function()interface.closeWindow(oriWindow)end
+        btnLU:action(function()
+            ori2 = 0
+            oriBox2:text(oriBox2text[1])
+            oriTerminate()
+        end)
+        btnRD:action(function()
+            ori2 = 1
+            oriBox2:text(oriBox2text[2])
+            oriTerminate()
+        end)
+        
+        oriWindow:addComponent(btnLU)
+        oriWindow:addComponent(btnRD)
+        oriWindow:onTryExit(oriTerminate)
+        interface.showWindow(oriWindow)
+    end
+    oriBox2:action(ori2Cfg)
+
     local outputTest = function()
         if dataSize == 0 then
             outputText:text("blah blah blah")
@@ -209,6 +302,24 @@ function qRomBuilder.input()
             dataSize = dataSize + 1
         end
 
+        if (tonumber(sizeX) == nil) then
+            if(tonumber(sizeY) == nil) then
+                if (dataSize > 32) then
+                    sizeX = 64
+                elseif (dataSize > 4) then
+                    sizeX = 32
+                else
+                    sizeX = 4
+                end
+                sizeY = math.ceil(dataSize / sizeX)
+            else
+                sizeX = math.ceil(dataSize / sizeY)
+            end
+        elseif (tonumber(sizeY) == nil) then
+            sizeY = math.ceil(dataSize / sizeX)
+        end
+        
+
         if (dataSize > (sizeX*sizeY)) then
             outputText:text("Data couldn't fit in the ROM")
             return
@@ -218,9 +329,7 @@ function qRomBuilder.input()
             data[i] = defaultValue
         end
 
-        outputText:text("trying to generate...")
-        if qRomBuilder.generate(locX,locY,sizeX,sizeY,data) then
-            outputText:text("done!")
+        if qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data) then
             terminate()
         end
     end
@@ -251,6 +360,7 @@ function qRomBuilder.input()
     genWindow:onTryOkay(tryGen)
 
     interface.showWindow(genWindow)
+    
 
 end
 
