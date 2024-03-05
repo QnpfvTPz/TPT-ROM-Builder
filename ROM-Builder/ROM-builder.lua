@@ -119,16 +119,12 @@ end
 
 
 function qRomBuilder.input()
-    local dataPath = "t.txt"
+    local dataPath = ""
     local locX
     local locY
-    --locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
-    locX = 10
-    locY = 10
+    locX, locY = sim.adjustCoords(tpt.mousex,tpt.mousey)
     local sizeX
     local sizeY
-    sizeX = 4
-    sizeY = 4
     local defaultValue = "0x10000000"
     local ori1 = 1  --Left, Right, Up, Down
     local ori2 = 0  --Left/Up, Right/Down
@@ -252,14 +248,16 @@ function qRomBuilder.input()
     oriBox2:action(ori2Cfg)
 
     local outputTest = function()
-        if dataSize == 0 then
+        
+        local dP = pathBox:text()
+        if dP == "easteregg" then
+            outputText:text("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+        elseif dataSize == 0 then
             outputText:text("blah blah blah")
         else
-            dataPath = pathBox:text()
-            local tmp = tonumber(dataPath)
-            if dataPath == "easteregg" then
-                outputText:text("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-            elseif tmp == nil then
+            
+            local tmp = tonumber(dP)
+            if tmp == nil then
                 outputText:text("input: nil")
             else
                 outputText:text(data[tmp])
