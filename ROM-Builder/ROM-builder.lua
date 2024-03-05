@@ -29,8 +29,10 @@ function qRomBuilder.validateData(data)
 end
 
 
+----------------------------------------------------------------
 
-function qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data)
+
+function qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data,eleId)
 
     -- all data must be in a number
     -- all data must be seperated by \n
@@ -106,8 +108,17 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data)
             return false
         end
         
-        local p = sim.partCreate(-3, tmpX, tmpY, 125)
-        sim.partProperty(p, sim.FIELD_TMP, 6)
+        local p = sim.partCreate(-3, tmpX, tmpY, eleId)
+        if eleId == 0x7D then
+            sim.partProperty(p, sim.FIELD_TMP, 6)
+        elseif eleId == 0x1F then
+            sim.partProperty(p, sim.FIELD_LIFE, 0)
+            sim.partProperty(p, sim.FIELD_TEMP, 295.15)
+            sim.partProperty(p, sim.FIELD_VX, 0)
+            sim.partProperty(p, sim.FIELD_VY, 0)
+        elseif eleId == 0x7F then
+            sim.partProperty(p, sim.FIELD_LIFE, 0xFFFF)
+        end
         sim.partProperty(p, sim.FIELD_CTYPE, tmp)
         ndx = ndx + 1
     end
@@ -116,6 +127,8 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data)
     return true
 end
 
+
+----------------------------------------------------------------
 
 
 function qRomBuilder.input()
@@ -128,6 +141,8 @@ function qRomBuilder.input()
     local defaultValue = "0x10000000"
     local ori1 = 1  --Left, Right, Up, Down
     local ori2 = 0  --Left/Up, Right/Down
+    local elem = 0
+    local eleId = 0x7D
 
     local genWindow  = Window:new  ( -1, -1,320,160)
     local title      = Label:new   ( 10, 10,300, 17, "~/ Qn ROM Bulider \\~")
@@ -144,6 +159,8 @@ function qRomBuilder.input()
     local oriBox1    = Button:new  ( 85, 76, 40, 17, "Right")
     local oriLabel2  = Label:new   (130, 76, 20, 17, "->")
     local oriBox2    = Button:new  (155, 76, 40, 17, "Up")
+    local elemLabel  = Label:new   (210, 76, 30, 17, "Type:")
+    local elemBox    = Button:new  (250, 76, 40, 17, "FILT")
     local defVLabel  = Label:new   ( 10, 98, 70, 17, "Default value:")
     local defVBox    = Textbox:new ( 85, 98, 85, 17, defaultValue)
     local cancelBtn  = Button:new  (180, 98, 60, 17, "Cancel")
@@ -154,13 +171,76 @@ function qRomBuilder.input()
     local data = {}
     local dataSize = 0
 
+    local elemCfg = function()
+        local winX, winY = genWindow:position()
+        local btnX, btnY = elemBox:position()
+        winX = winX + btnX
+        winY = winY + btnY
+
+        local eleWindow = Window:new (winX, winY - (elem * 16), 40, 96)
+        local btnFilt   = Button:new (0, 0,40,17, "FILT")
+        local btnPhot   = Button:new (0,16,40,17, "PHOT")
+        local btnBray   = Button:new (0,32,40,17, "BRAY")
+        local btnBizs   = Button:new (0,48,40,17, "BIZS")
+        local btnBizr   = Button:new (0,64,40,17, "BIZR")
+        local btnBizg   = Button:new (0,80,40,17, "BIZG")
+
+        local eleTerminate = function()interface.closeWindow(eleWindow)end
+        btnFilt:action(function()
+            elem = 0
+            eleId = 0x7D
+            elemBox:text("FILT")
+            eleTerminate()
+        end)
+        btnPhot:action(function()
+            elem = 1
+            eleId = 0x1F
+            elemBox:text("PHOT")
+            eleTerminate()
+        end)
+        btnBray:action(function()
+            elem = 2
+            eleId = 0x7F
+            elemBox:text("BRAY")
+            eleTerminate()
+        end)
+        btnBizs:action(function()
+            elem = 3
+            eleId = 0x69
+            elemBox:text("BIZS")
+            eleTerminate()
+        end)
+        btnBizr:action(function()
+            elem = 4
+            eleId = 0x67
+            elemBox:text("BIZR")
+            eleTerminate()
+        end)
+        btnBizg:action(function()
+            elem = 5
+            eleId = 0x68
+            elemBox:text("BIZG")
+            eleTerminate()
+        end)
+
+        eleWindow:addComponent(btnFilt)
+        eleWindow:addComponent(btnPhot)
+        eleWindow:addComponent(btnBray)
+        eleWindow:addComponent(btnBizs)
+        eleWindow:addComponent(btnBizr)
+        eleWindow:addComponent(btnBizg)
+        eleWindow:onTryExit(eleTerminate)
+        interface.showWindow(eleWindow)
+    end
+    elemBox:action(elemCfg)
+
     local ori1Cfg = function()
         local winX, winY = genWindow:position()
         local btnX, btnY = oriBox1:position()
         winX = winX + btnX
         winY = winY + btnY
         
-        local oriWindow = Window:new (winX, winY, 40, 64)
+        local oriWindow = Window:new (winX, winY - (ori1 * 16), 40, 64)
         local btnL      = Button:new (0, 0,40,17,"Left")
         local btnR      = Button:new (0,16,40,17,"Right")
         local btnU      = Button:new (0,32,40,17,"Up")
@@ -224,7 +304,7 @@ function qRomBuilder.input()
             oriBox2text = {"Left", "Right"}
         
         end
-        local oriWindow = Window:new (winX, winY, 40, 32)
+        local oriWindow = Window:new (winX, winY - (ori2 * 16), 40, 32)
         local btnLU     = Button:new (0, 0,40,17,oriBox2text[1])
         local btnRD     = Button:new (0,16,40,17,oriBox2text[2])
         
@@ -327,7 +407,7 @@ function qRomBuilder.input()
             data[i] = defaultValue
         end
 
-        if qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data) then
+        if qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data,eleId) then
             terminate()
         end
     end
@@ -348,6 +428,8 @@ function qRomBuilder.input()
     genWindow:addComponent(oriBox1)
     genWindow:addComponent(oriLabel2)
     genWindow:addComponent(oriBox2)
+    genWindow:addComponent(elemLabel)
+    genWindow:addComponent(elemBox)
     genWindow:addComponent(defVLabel)
     genWindow:addComponent(defVBox)
     genWindow:addComponent(cancelBtn)
@@ -362,6 +444,8 @@ function qRomBuilder.input()
 
 end
 
+
+----------------------------------------------------------------
 
 
 function qRomBuilder._HotkeyHandler(key, keyNum, rep, shift, ctrl, alt)
