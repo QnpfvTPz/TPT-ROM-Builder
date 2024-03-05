@@ -436,21 +436,31 @@ function qRomBuilder.input()
             dataSize = dataSize + 1
         end
 
+        local log2Size = function (x)
+            return math.ceil(math.log(x) / math.log(2))
+        end
+
         if (tonumber(sizeX) == nil) then
             if(tonumber(sizeY) == nil) then
-                if (dataSize > 32) then
+                if (dataSize > 1024) then
+                    sizeX = 128
+                elseif (dataSize > 32) then
                     sizeX = 64
-                elseif (dataSize > 4) then
+                elseif (dataSize > 16) then
                     sizeX = 32
+                elseif (dataSize > 8) then
+                    sizeX = 16
+                elseif (dataSize > 4) then
+                    sizeX = 8
                 else
                     sizeX = 4
                 end
-                sizeY = math.ceil(dataSize / sizeX)
+                sizeY = 2^log2Size(dataSize / sizeX)
             else
-                sizeX = math.ceil(dataSize / sizeY)
+                sizeX = 2^log2Size(dataSize / sizeY)
             end
         elseif (tonumber(sizeY) == nil) then
-            sizeY = math.ceil(dataSize / sizeX)
+            sizeY = 2^log2Size(dataSize / sizeX)
         end
         
 
