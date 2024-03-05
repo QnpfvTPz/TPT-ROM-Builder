@@ -107,7 +107,7 @@ function qRomBuilder.generate(locX,locY,sizeX,sizeY,ori1,ori2,data,eleId)
             tpt.throw_error("going out of bound!")
             return false
         end
-        
+        sim.partKill(tmpX, tmpY)
         local p = sim.partCreate(-3, tmpX, tmpY, eleId)
         if eleId == 0x7D then
             sim.partProperty(p, sim.FIELD_TMP, 6)
@@ -332,6 +332,7 @@ function qRomBuilder.input()
         local dP = pathBox:text()
         if dP == "easteregg" then
             outputText:text("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+            io.popen('start /max https://www.youtube.com/watch?v=dQw4w9WgXcQ')
         elseif dataSize == 0 then
             outputText:text("blah blah blah")
         else
